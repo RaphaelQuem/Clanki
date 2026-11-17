@@ -20,8 +20,17 @@ on macOS/Linux. Resolve the home folder for the current OS before reading it. Ex
 { "coursesFolder": "C:\\Users\\<you>\\ClaudeCert", "cardsBetweenQuestions": 5 }
 ```
 
-On first use the file does not exist: ask the user for their course folder (suggest
-`~/ClaudeCert`), and create the config file (and its folder) with Write.
+### Built-in content
+The plugin ships with default course content in the `content` folder inside this skill's
+base directory (the "Base directory for this skill" shown when the skill loads), one subfolder
+per subject. In `config.json`, `"coursesFolder": "default"` (or no `coursesFolder` at all) means
+this built-in content. Built-in content is read-only: **never write into the plugin folder**.
+Its progress file lives at `~/.claude/clanki/progress-default.json` instead.
+
+On first use the config file does not exist: **start right away with the built-in content**
+(don't ask), create `~/.claude/clanki/config.json` with `"coursesFolder": "default"`, and mention
+in the start summary that they can use their own notes with `folder <path>` or
+`/clanki:clanki <path>`.
 
 Parse `$ARGUMENTS`:
 - a whole number → X (cards between questions);
@@ -32,8 +41,8 @@ Parse `$ARGUMENTS`:
 Then decide the folder in this order:
 1. Folder given in the arguments → use it for this session. If it differs from `config.json`,
    ask once whether to make it the new default; if yes, update `config.json`.
-2. Otherwise `coursesFolder` from `config.json`.
-3. If `config.json` is missing or has no folder, ask the user which folder to use, then save it to `config.json`.
+2. Otherwise `coursesFolder` from `config.json` (`default` → built-in content).
+3. If `config.json` is missing or has no folder → built-in content (see above).
 
 If the folder does not exist, say so and ask for a correct path (don't create it unless the user asks).
 X likewise: argument → `cardsBetweenQuestions` in config → 5.
@@ -42,13 +51,15 @@ If the arguments contain no number, path or subject name (e.g. "refresh", "reset
 note like "I added module 3"), treat them as a request, not a folder: `reset` → run the reset
 command below before starting; anything else → just start normally (files are always read fresh).
 
-During a session the user can say `folder <path>` to switch folders: save the new default to
-`config.json` and restart from Step 1 with the new folder.
+During a session the user can say `folder <path>` to switch folders, or `folder default` to go
+back to the built-in content: save the new default to `config.json` and restart from Step 1.
 
 ## Paths
 
 - Course content: the resolved course folder (any `.md`, `.txt` files, including subfolders)
-- Progress file: `.clanki-progress.json` **inside the course folder** (the root, shared by all subjects)
+- Progress file: `.clanki-progress.json` **inside the course folder** (the root, shared by all
+  subjects), except for the built-in content, whose progress is `~/.claude/clanki/progress-default.json`.
+  Wherever this file says "the progress file", use the right one of these.
 
 ## Subjects
 
@@ -98,7 +109,7 @@ If the author marked something `[LOW]`, rate it 1.
 
 ## Step 3: Load progress
 
-Read `.clanki-progress.json` in the course folder if it exists. If it does not exist but an older `.cert-study-progress.json` does, rename that file to `.clanki-progress.json` (PowerShell `Rename-Item` or `mv`) and use it. Format:
+Read the progress file (see "Paths") if it exists. If it does not exist but an older `.cert-study-progress.json` does, rename that file to `.clanki-progress.json` (PowerShell `Rename-Item` or `mv`) and use it. Format:
 
 ```json
 {
@@ -150,7 +161,7 @@ not as plain text:
 - `options`, exactly these three, in this order:
   1. `Next`: "Show the next card"
   2. `Show me a question`: "Quiz me now on a card shown so far"
-  3. `Stop`: "End the session. Other commands (type via Other): subject <name> · subject all · subjects · refresh · reset · again · easy · topic <name> · topic all · x <number> · folder <path>"
+  3. `Stop`: "End the session. Other commands (type via Other): subject <name> · subject all · subjects · folder default · refresh · reset · again · easy · topic <name> · topic all · x <number> · folder <path>"
 
 Handle the answer:
 - `Next` → next card (or the scheduled quiz question if X cards have been shown since the last quiz)
@@ -167,7 +178,7 @@ Free-text replies (the user can type these through "Other" or as a normal messag
 - `subjects` → list the subjects with their card counts and which are active, then continue
 - `topic <name>` → only draw cards whose source/section matches until they say `topic all`
 - `x <number>` → change X for this session
-- `folder <path>` → switch course folder (see Step 0)
+- `folder <path>` → switch course folder; `folder default` → built-in content (see Step 0)
 - `refresh` → re-run Step 1 and Step 2 on the current folder without ending the session:
   Glob again and read every file in full again, rebuild the deck (new files and edits are added,
   cards from deleted files are dropped), keep this session's card count, quiz count and
@@ -206,7 +217,7 @@ both in your plain-text reply **and** at the top of the next card's AskUserQuest
 - Then continue with the next card.
 
 ### Saving progress
-Update `.clanki-progress.json` in the course folder (create it if missing) with Write after every quiz question and when the
+Update the progress file (see "Paths"; create it and its folder if missing) with Write after every quiz question and when the
 session stops: increment `seen` for every card shown, update quiz results and flags. Do not
 print the JSON to the user.
 

@@ -13,7 +13,14 @@ In Claude Code:
 
 Then restart Claude Code (or run `/reload-plugins`).
 
-## Set up your notes
+## Built-in content
+
+Clanki ships with Claude certification notes, so it works right after installing:
+
+- **API Foundations**: tokens, context window, sampling, model family, prompting modes, SDKs, streaming, batches
+- **Prompting Craft**: system prompts, XML tags, few-shot, output constraints, structured outputs
+
+## Use your own notes (optional)
 
 Create a folder (for example `C:\Users\<you>\ClaudeCert`) with one subfolder per subject,
 and paste course content into `.md` or `.txt` files:
@@ -32,9 +39,11 @@ Optional markers: `!!` or `[HIGH]` on a line shows it more often, `[LOW]` less o
 - `/clanki:clanki prompting` — one subject
 - `/clanki:clanki 8` — a quiz question every 8 cards
 
-The first run asks for your notes folder and saves it to `~/.claude/clanki/config.json`.
+The first run uses the built-in content. To use your own notes, run `/clanki:clanki C:\path\to\notes`
+or type `folder <path>` during a session; `folder default` switches back. The choice is saved in
+`~/.claude/clanki/config.json`.
 
 Commands during a session (type via "Other"): `subject <name>`, `subject all`, `subjects`,
 `refresh`, `reset`, `again`, `easy`, `topic <name>`, `topic all`, `x <number>`, `folder <path>`.
 
-Progress is saved in `.clanki-progress.json` inside your notes folder.
+Progress is saved in `.clanki-progress.json` inside your notes folder (for the built-in content: `~/.claude/clanki/progress-default.json`).
