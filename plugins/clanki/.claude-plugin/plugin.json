@@ -1,0 +1,7 @@
+{
+  "name": "clanki",
+  "version": "1.0.0",
+  "description": "Flashcard and quiz coach for Claude certification prep. Reads your course notes (one subfolder per subject), shows cards weighted by importance, and quizzes you with exam-style questions.",
+  "author": { "name": "RaphzWork" },
+  "keywords": ["study", "flashcards", "certification", "quiz"]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "clanki-marketplace",
+  "owner": { "name": "RaphzWork" },
+  "description": "Study tools for Claude certification prep.",
+  "plugins": [
+    {
+      "name": "clanki",
+      "source": "./plugins/clanki",
+      "description": "Flashcard and quiz coach for Claude certification prep."
+    }
+  ]
+}
