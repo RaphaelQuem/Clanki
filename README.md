@@ -4,11 +4,11 @@
 
 **A flashcard and quiz coach for [Claude Code](https://claude.com/claude-code), built for Claude Developer Certification prep.**
 
-Clanki turns course notes into flashcards, shows the important ones more often,
+Clanki turns course notes into true-or-false flashcards, shows the important ones more often,
 and quizzes you with exam-style scenario questions as you go.
 
 ![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![Content](https://img.shields.io/badge/content-Claude%20Developer%20Certification-6B4FBB)
 
 </div>
@@ -18,9 +18,10 @@ and quizzes you with exam-style scenario questions as you go.
 ## ✨ Features
 
 - **Ready to study out of the box.** Ships with **Claude Developer Certification** course material as its default content.
+- **True or false on every card.** Each card is a statement you judge as true or false, so you get feedback on every single card. Clanki then shows the right answer and, for false statements, the corrected version.
 - **Cards weighted by importance.** Limits, defaults, decision rules and common pitfalls come up more often than background material.
 - **Exam-style quizzes.** Every few cards, Clanki asks a scenario-based multiple-choice question about a card you've already seen, then tells you whether you were right and explains why.
-- **Learns from your results.** Cards you miss or mark `again` come back more often; cards you know well fade into the background.
+- **Learns from your results.** Cards you get wrong, on true/false or in a quiz, come back more often; cards you know well fade into the background.
 - **Organized by subject.** Study everything mixed, or focus on a single subject.
 - **Bring your own notes.** Point Clanki at any folder of `.md` / `.txt` files and it builds a deck from them.
 - **Always up to date.** Clanki re-reads the notes every session, and `refresh` picks up new files mid-session.
@@ -65,11 +66,13 @@ You can also just say **"let's study"** or **"quiz me"**.
 
 ### During a session
 
-Each card comes with three buttons: **Next**, **Show me a question** and **Stop**.
+Each card is a statement with four buttons: **True**, **False**, **Show me a question** and **Stop**.
+After you answer, Clanki tells you if you were right and explains the fact, then shows the next card.
 Type any of these through **Other**:
 
 | Command | What it does |
 |---|---|
+| `skip` | Skip this card without answering |
 | `again` | Show this card more often |
 | `easy` | Undo `again` for this card |
 | `subject <name>` / `subject all` | Focus on a subject / back to all subjects |
@@ -81,7 +84,7 @@ Type any of these through **Other**:
 | `refresh` | Re-read the notes without ending the session |
 | `reset` | Clear all progress (asks for confirmation first) |
 
-When you stop, Clanki shows your quiz score per subject, the cards you missed and the topics to review next.
+When you stop, Clanki shows your true/false and quiz scores per topic, the cards you missed and the topics to review next.
 
 ## 📝 Using your own notes
 

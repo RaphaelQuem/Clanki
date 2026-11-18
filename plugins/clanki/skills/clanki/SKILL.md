@@ -130,13 +130,14 @@ Read the progress file (see "Paths") if it exists. If it does not exist but an o
 ```json
 {
   "cards": {
-    "<card-id>": { "seen": 0, "quizzed": 0, "correct": 0, "wrong": 0, "flag": false }
+    "<card-id>": { "seen": 0, "tfCorrect": 0, "tfWrong": 0, "quizzed": 0, "correct": 0, "wrong": 0, "flag": false }
   },
   "sessions": 0
 }
 ```
 
 Missing file = empty progress. Card ids not present in the current deck are ignored (content changed).
+Fields missing from older progress files count as 0 / false.
 
 ## Step 4: Effective weight and scheduling
 
@@ -145,9 +146,11 @@ Effective weight for each card:
 ```
 weight = importance            (1–3)
        + 2 * wrong             (missed quiz questions come back more)
+       + 1 * tfWrong           (missed true/false cards come back more)
        + 2 if flag             (user asked to see it again)
-       - 1 if correct >= 2 and wrong == 0   (well-known, min 1)
+       - 1 if (correct + tfCorrect) >= 3 and (wrong + tfWrong) == 0   (well-known, min 1)
        + 1 if seen == 0        (introduce new cards)
+       + 2 if the last true/false answer for this card was wrong (in this or an earlier session)
 ```
 
 Pick the next card with probability proportional to weight, with these rules:
@@ -164,31 +167,54 @@ Start with a one-line summary: the course folder, the subjects found (with file 
 which subjects and topics are active (`all` if no filter), number of files read, number of cards, how many high-importance,
 and X. Then show the first card immediately.
 
-### Showing a card
-Show every card with the **AskUserQuestion** tool (one question, single select, no preview),
-not as plain text:
+### Showing a card: a true/false statement
+Every card is shown as a **true/false statement** the user judges, so each card gives feedback
+and feeds progress. Show it with the **AskUserQuestion** tool (one question, single select, no preview),
+not as plain text.
+
+**Writing the statement.** Turn the card into one clear, self-contained sentence about its fact.
+About half the time make it **true** (the fact as the course states it); otherwise make it
+**false** by changing exactly one meaningful detail to a plausible wrong one taken from related
+course content (swap the event, field, limit, model tier, stop reason, cause or fix). Never make
+it false by just adding "not", by using a trick word, or by a detail the course doesn't cover.
+Keep it to one or two lines and don't reveal the answer in the wording. Decide internally
+whether it is true or false before asking.
 
 - `header`: `Card N`
-- `question`: the card as plain text, in this layout:
-  `🃏 Card N · ★★★ · <subject> › <topic> › <source file> › <section>` on the first line (omit `› <topic>` when it is `General`; shorten long file names to their first few words), then a blank line, then
-  `Q: <front>`, a blank line, then `A: <back>`. The question text must stand on its own.
-  If the previous turn was a quiz question, the question text **starts** with the quiz result
-  (see "After the user answers"), then a line `────────`, then the card.
-- `options`, exactly these three, in this order:
-  1. `Next`: "Show the next card"
-  2. `Show me a question`: "Quiz me now on a card shown so far"
-  3. `Stop`: "End the session. Other commands (type via Other): subject <name> · subject all · subjects · topic <name> · topic all · topics · folder default · refresh · reset · again · easy · x <number> · folder <path>"
+- `question`: plain text in this layout:
+  `🃏 Card N · ★★★ · <subject> › <topic> › <source file> › <section>` on the first line (omit
+  `› <topic>` when it is `General`; shorten long file names to their first few words), then a
+  blank line, then `True or false? <statement>`. The question text must stand on its own.
+  If the previous turn was a card or a quiz question, the question text **starts** with that
+  result (see "Feedback" below), then a line `────────`, then the new card.
+- `options`, exactly these four, in this order:
+  1. `True`: "The statement is correct"
+  2. `False`: "The statement is wrong"
+  3. `Show me a question`: "Skip this card and quiz me now on a card shown so far"
+  4. `Stop`: "End the session. Other commands (type via Other): again · easy · subject <name> · subject all · subjects · topic <name> · topic all · topics · x <number> · folder <path> · folder default · refresh · reset"
+
+### Feedback (after every true/false answer)
+Always tell the user whether they were right, and teach the fact. Put it both in plain text and
+at the top of the next AskUserQuestion (the user may only see the dialog):
+- `✅ Correct` or `❌ Wrong`, then `The statement was TRUE` / `The statement was FALSE`.
+- If it was false, give the corrected statement.
+- Then the card's full answer (the `back`, 1–3 lines), citing the source file/section.
+Update progress for that card: `seen` +1, and `tfCorrect` +1 or `tfWrong` +1; remember whether
+the last true/false answer was wrong.
 
 Handle the answer:
-- `Next` → next card (or the scheduled quiz question if X cards have been shown since the last quiz)
+- `True` / `False` → give feedback, then the next card (or the scheduled quiz question if X cards
+  have been answered since the last quiz). A card skipped with `Show me a question`, `Stop` or a
+  command still counts as `seen` but not as answered.
 - `Show me a question` → ask a quiz question right away (see "Quiz question" below), then reset
   the count toward the next scheduled quiz
 - `Stop` → go to Step 6
 - Free text typed through "Other" → handle it like the replies below
 
 Free-text replies (the user can type these through "Other" or as a normal message):
-- `n`, `next`, `ok` → next card
-- `again` / `hard` → set `flag: true` for that card, then next card
+- `t`, `true`, `f`, `false` → same as the buttons
+- `n`, `next`, `skip` → skip this card without answering, then the next card
+- `again` / `hard` → set `flag: true` for the card just shown (or just answered), then continue
 - `easy` → set `flag: false`
 - `subject <name>[, <name>…]` → only draw cards from those subjects; `subject all` → all subjects again
 - `subjects` → list the subjects with their card counts and which are active, then continue
@@ -210,22 +236,23 @@ Free-text replies (the user can type these through "Other" or as a normal messag
 - a question about the card → answer it briefly using the course files, then continue
 
 ### Quiz question (every X cards, or when the user picks "Show me a question")
-After every X cards shown, instead of the next card, ask a question about **one card already shown in this session**. Choose it by:
-1. preferring cards with importance 3 or with previous wrong answers,
+After every X answered cards, instead of the next card, ask a question about **one card already shown in this session**. Choose it by:
+1. preferring cards the user got wrong on true/false, then importance 3,
 2. that haven't been quizzed yet this session.
 
 Write the question like the real exam: a short **scenario** that requires applying the fact,
-not just repeating the card's wording. Use the AskUserQuestion tool with 4 options
+not just repeating the card's wording. Always use the AskUserQuestion tool with 4 options
 (one correct, three plausible distractors drawn from related facts in the course files),
 shuffle the correct option's position, and do not mark any option as recommended.
-Occasionally (about 1 in 3) instead ask an open question in plain text and let the user type the answer.
+If the previous turn was a true/false card, start the quiz question text with that card's feedback
+and a `────────` line.
 
-After the user answers **any** quiz question (scheduled or requested with "Show me a question",
-multiple choice or open), **always** tell them whether they were right or wrong. Never skip this.
+After the user answers **any** quiz question (scheduled or requested with "Show me a question"),
+**always** tell them whether they were right or wrong. Never skip this.
 The user may only see the dialog, not text written between tool calls, so put the result
 both in your plain-text reply **and** at the top of the next card's AskUserQuestion text
 (or in the Step 6 summary if they stop):
-- Start with `✅ Correct` or `❌ Wrong` (for open answers, `🟡 Partly right` is allowed), then
+- Start with `✅ Correct` or `❌ Wrong`, then
   the question in one line, then `Your answer: <their answer>` and `Correct answer: <answer>`.
 - Explain **why** in 2–4 lines, citing the source file/section.
 - On ❌ briefly explain why the chosen option is wrong too.
@@ -233,18 +260,19 @@ both in your plain-text reply **and** at the top of the next card's AskUserQuest
 - Then continue with the next card.
 
 ### Saving progress
-Update the progress file (see "Paths"; create it and its folder if missing) with Write after every quiz question and when the
-session stops: increment `seen` for every card shown, update quiz results and flags. Do not
-print the JSON to the user.
+Update the progress file (see "Paths"; create it and its folder if missing) with Write after
+every quiz question, every 5 true/false answers, and when the session stops: `seen`, true/false
+results, quiz results and flags. Do not print the JSON to the user.
 
 ## Step 6: End of session
 
 When the user stops, increment `sessions`, save progress, and show a short summary:
-cards shown, quiz score (e.g. 3/4) overall and per subject, the cards they missed or flagged
-(front only) and the 3 weakest topics to review next time.
+cards answered and true/false score (e.g. 14/18), quiz score (e.g. 3/4), both overall and per
+topic, the cards they missed or flagged (front only) and the 3 weakest topics to review next time.
 
 ## Rules
 - Only use facts from the course files. If the files are ambiguous or seem contradictory, say so on the card rather than guessing.
-- Keep each turn short: one card or one question per turn. Feedback on a quiz answer goes in
-  plain text before the next card's AskUserQuestion call.
-- Never show the whole deck or the answer to a quiz question before the user answers.
+- Keep each turn short: one card or one question per turn. Feedback on a card or quiz answer goes
+  in plain text before the next AskUserQuestion call, and again at the top of that call.
+- Never show the whole deck, a card's answer, or the answer to a quiz question before the user answers.
+- Keep a roughly even mix of true and false statements; never let the user predict the answer from a pattern.
