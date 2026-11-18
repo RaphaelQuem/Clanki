@@ -8,7 +8,7 @@ Clanki turns course notes into flashcards, shows the important ones more often,
 and quizzes you with exam-style scenario questions as you go.
 
 ![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757)
-![Version](https://img.shields.io/badge/version-1.1.0-blue)
+![Version](https://img.shields.io/badge/version-1.2.0-blue)
 ![Content](https://img.shields.io/badge/content-Claude%20Developer%20Certification-6B4FBB)
 
 </div>
@@ -27,14 +27,18 @@ and quizzes you with exam-style scenario questions as you go.
 
 ## 📚 Default content: Claude Developer Certification
 
-Clanki includes **Claude Developer Certification** study material, split into subjects:
+Clanki includes the **Claude Developer Certification** study material as the subject
+**`Certified-Developer`**, with one topic per course module:
 
-| Subject | Covers |
+| Topic | Covers |
 |---|---|
-| **API Foundations** | Tokens, the context window, sampling and non-determinism, the Claude model family, reasoning modes, zero/one/multi-shot prompting, SDKs vs. REST, streaming, async clients, Message Batches API |
-| **Prompting Craft** | System prompts, XML tags, few-shot examples, output constraints, diagnosing failed prompts, structured outputs (JSON outputs, strict tool use) and their tradeoffs |
+| **Module_1** | API foundations: tokens, the context window, sampling and non-determinism, the Claude model family, reasoning modes, zero/one/multi-shot prompting, SDKs vs. REST, streaming, async and batch processing |
+| **Module_2** | Building with the API: prompting craft and structured outputs, extended thinking, tool schemas, streaming without corrupting state, model selection and context budgets, production agents, memory across sessions, images, PDFs and high-volume processing |
+| **Module_3** | Claude Code and integrations: the agent loop, permission modes and settings, CLAUDE.md, rules, hooks and subagents, plugins, skills and marketplaces, MCP servers, enterprise connections and authentication |
+| **Module_4** | Production readiness: evals and calibrated judges, testing and tracing, tool errors and retries, model selection in production, cost, latency and reliability across agents, securing against untrusted input |
+| **Module_5** | Delivery and deployment: reusable assets, contributing to shared infrastructure, requirements and the systems lifecycle, deployment platforms and version pinning, compliance and cost tradeoffs, trust boundaries across deployments |
 
-> More modules will be added as the course progresses.
+Study one module with `/clanki:clanki module_3`, or type `topic 3` during a session.
 
 ## 🚀 Installation
 
@@ -52,8 +56,8 @@ Then restart Claude Code (or run `/reload-plugins`). No need to clone this repos
 | Command | What it does |
 |---|---|
 | `/clanki:clanki` | Study all subjects |
-| `/clanki:clanki prompting` | Study one subject (partial names work) |
-| `/clanki:clanki api, prompting` | Study several subjects |
+| `/clanki:clanki certified` | Study one subject (partial names work) |
+| `/clanki:clanki module_2` | Study one topic (module) |
 | `/clanki:clanki 8` | Ask a quiz question every 8 cards (default: 5) |
 | `/clanki:clanki C:\path\to\notes` | Use your own notes folder |
 
@@ -70,7 +74,8 @@ Type any of these through **Other**:
 | `easy` | Undo `again` for this card |
 | `subject <name>` / `subject all` | Focus on a subject / back to all subjects |
 | `subjects` | List subjects with their card counts |
-| `topic <name>` / `topic all` | Focus on a section or topic / back to all |
+| `topic <name>` / `topic all` | Focus on a topic (e.g. `topic 3` for Module_3) / back to all |
+| `topics` | List the topics of the active subjects |
 | `x <number>` | Change how many cards come before each quiz question |
 | `folder <path>` / `folder default` | Switch to your own notes / back to the built-in content |
 | `refresh` | Re-read the notes without ending the session |
@@ -80,14 +85,18 @@ When you stop, Clanki shows your quiz score per subject, the cards you missed an
 
 ## 📝 Using your own notes
 
-Create a folder with **one subfolder per subject** and paste your content into `.md` or `.txt` files:
+Create a folder with **one subfolder per subject**, optionally with **topic subfolders** inside,
+and paste your content into `.md` or `.txt` files:
 
 ```
 MyNotes/
-├── API Foundations/
-│   └── module_1.md
-└── Prompting Craft/
-    └── module_2.md
+├── Certified-Developer/        ← subject
+│   ├── Module_1/               ← topic
+│   │   └── module_1.md
+│   └── Module_2/
+│       └── lesson_1.md
+└── Another-Subject/
+    └── notes.md                ← files directly in a subject go to topic "General"
 ```
 
 Then run `/clanki:clanki <path-to-MyNotes>`. Clanki remembers the folder for next time.
@@ -119,9 +128,9 @@ plugins/clanki/
 ├── .claude-plugin/plugin.json         Plugin manifest
 └── skills/clanki/
     ├── SKILL.md                       The study coach
-    └── content/                       Built-in Claude Developer Certification material
-        ├── API Foundations/
-        └── Prompting Craft/
+    └── content/
+        └── Certified-Developer/       Built-in Claude Developer Certification material
+            ├── Module_1/ … Module_5/
 ```
 
 ---

@@ -36,7 +36,8 @@ Parse `$ARGUMENTS`:
 - a whole number → X (cards between questions);
 - a path (contains `\`, `/` or `:`, possibly quoted) → the course folder;
 - a name matching a **subject** (a subfolder of the course folder, see "Subjects"; case-insensitive,
-  partial match allowed) → study only that subject. Several subjects can be given, separated by commas.
+  partial match allowed) → study only that subject. Several subjects can be given, separated by commas;
+- a name matching a **topic** (see "Topics") → study only that topic.
 
 Then decide the folder in this order:
 1. Folder given in the arguments → use it for this session. If it differs from `config.json`,
@@ -73,11 +74,25 @@ folder root belong to the subject `General`.
   subjects. Quiz questions also only use cards from the active subjects.
 - If a name matches no subject, say so, list the available subjects and ask which one to use.
 
+### Topics (sub-topics of a subject)
+Each **subfolder inside a subject folder** is a topic of that subject
+(e.g. `Certified-Developer\Module_3\` → subject `Certified-Developer`, topic `Module_3`).
+Files directly in the subject folder belong to the topic `General`.
+- `topic <name>[, <name>…]` (or a topic name passed as an argument, e.g. `/clanki:clanki module_3`)
+  → only draw cards from the matching topic folders (case-insensitive, partial match allowed;
+  `3` matches `Module_3`). If no topic folder matches, fall back to matching section headings.
+- `topic all` → all topics of the active subjects again.
+- `topics` → list the topics of the active subjects with card counts.
+
 ## Step 1: Read the course files (EVERY time, no exceptions)
 
-1. Use Glob with `**/*.md` and `**/*.txt` in the course folder. Ignore `README.md` at the root of the course folder.
-   Read the files of **all** subjects even when a subject filter is active, so switching subjects needs no re-read.
-2. Read **every** file in full with the Read tool (use `offset`/`limit` for long files until you have read all of it). Never rely on cards or content from an earlier session or from memory: the files may have changed.
+1. Use Glob with `**/*.md` and `**/*.txt` in the course folder. Ignore `README.md` at the root
+   of the course folder, and ignore any folder whose name starts with `.` (e.g. `.in_use`).
+   Use the Glob result to know every subject and topic, with how many files each has.
+   Read the files of the **active scope** (active subjects and topics; everything if no filter).
+   Content can be large, so when the user switches to a subject or topic whose files you
+   haven't read yet in this session, read those files before drawing cards from them.
+2. Read **every** file in the active scope in full with the Read tool (use `offset`/`limit` for long files until you have read all of it). Never rely on cards or content from an earlier session or from memory: the files may have changed.
 3. If no files exist, tell the user to paste course content into the folder and stop.
 
 ## Step 2: Build the deck
@@ -88,9 +103,10 @@ meaningful fact; don't merge unrelated facts, don't invent facts that are not in
 
 For each card keep (internally, don't print the deck):
 - `id`: short stable kebab-case slug of the concept, prefixed by file name, e.g. `prompt-caching__cache-ttl`.
-  For files in a subject folder, also prefix the subject: `<subject>/<file>__<slug>`
-  (root files keep the plain `<file>__<slug>` form).
+  For files in a subject folder, also prefix the subject and topic: `<subject>/<topic>/<file>__<slug>`
+  (drop `<topic>/` for files directly in the subject folder; root files keep the plain `<file>__<slug>` form).
 - `subject`: the subject the file belongs to
+- `topic`: the topic folder the file belongs to (or `General`)
 - `front`: a prompt/question or term
 - `back`: the answer, 1–4 lines
 - `source`: file name (and section heading)
@@ -144,8 +160,8 @@ Pick the next card with probability proportional to weight, with these rules:
 
 `X` = the value resolved in Step 0.
 
-Start with a one-line summary: the course folder, the subjects found (with card counts) and
-which are active (`all` if no filter), number of files read, number of cards, how many high-importance,
+Start with a one-line summary: the course folder, the subjects found (with file counts, and their topics) and
+which subjects and topics are active (`all` if no filter), number of files read, number of cards, how many high-importance,
 and X. Then show the first card immediately.
 
 ### Showing a card
@@ -154,14 +170,14 @@ not as plain text:
 
 - `header`: `Card N`
 - `question`: the card as plain text, in this layout:
-  `🃏 Card N · ★★★ · <subject> › <source file> › <section>` on the first line, then a blank line, then
+  `🃏 Card N · ★★★ · <subject> › <topic> › <source file> › <section>` on the first line (omit `› <topic>` when it is `General`; shorten long file names to their first few words), then a blank line, then
   `Q: <front>`, a blank line, then `A: <back>`. The question text must stand on its own.
   If the previous turn was a quiz question, the question text **starts** with the quiz result
   (see "After the user answers"), then a line `────────`, then the card.
 - `options`, exactly these three, in this order:
   1. `Next`: "Show the next card"
   2. `Show me a question`: "Quiz me now on a card shown so far"
-  3. `Stop`: "End the session. Other commands (type via Other): subject <name> · subject all · subjects · folder default · refresh · reset · again · easy · topic <name> · topic all · x <number> · folder <path>"
+  3. `Stop`: "End the session. Other commands (type via Other): subject <name> · subject all · subjects · topic <name> · topic all · topics · folder default · refresh · reset · again · easy · x <number> · folder <path>"
 
 Handle the answer:
 - `Next` → next card (or the scheduled quiz question if X cards have been shown since the last quiz)
@@ -176,7 +192,7 @@ Free-text replies (the user can type these through "Other" or as a normal messag
 - `easy` → set `flag: false`
 - `subject <name>[, <name>…]` → only draw cards from those subjects; `subject all` → all subjects again
 - `subjects` → list the subjects with their card counts and which are active, then continue
-- `topic <name>` → only draw cards whose source/section matches until they say `topic all`
+- `topic <name>[, <name>…]` / `topic all` / `topics` → see "Topics"
 - `x <number>` → change X for this session
 - `folder <path>` → switch course folder; `folder default` → built-in content (see Step 0)
 - `refresh` → re-run Step 1 and Step 2 on the current folder without ending the session:
